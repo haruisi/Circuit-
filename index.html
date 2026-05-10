@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
-  <title>回路図メーカー</title>
+  <title>回路図メーカー v2</title>
 
   <style>
     * {
@@ -11,139 +11,219 @@
       -webkit-tap-highlight-color: transparent;
     }
 
-    body {
+    html, body {
       margin: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-      background: #f4f4f4;
-      color: #222;
-      overscroll-behavior: none;
+      background: #f5f5f5;
+      color: #111;
       touch-action: none;
     }
 
     .app {
-      height: 100vh;
+      width: 100vw;
+      height: 100dvh;
       display: flex;
-      flex-direction: column;
-    }
-
-    header {
-      padding: 10px 12px 6px;
-      background: #ffffff;
-      border-bottom: 1px solid #ddd;
-    }
-
-    h1 {
-      margin: 0;
-      font-size: 17px;
-      font-weight: 700;
-    }
-
-    .hint {
-      margin-top: 4px;
-      font-size: 12px;
-      color: #666;
+      background: #f5f5f5;
     }
 
     .toolbar {
-      display: flex;
-      gap: 8px;
-      padding: 8px;
+      width: 86px;
+      height: 100%;
       background: #ffffff;
-      border-bottom: 1px solid #ddd;
-      overflow-x: auto;
-      white-space: nowrap;
+      border-right: 1px solid #d8d8d8;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 8px 6px;
+      gap: 7px;
+      overflow-y: auto;
+      z-index: 10;
     }
 
-    button {
-      border: 1px solid #ccc;
+    .tool-group {
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      padding-bottom: 7px;
+      margin-bottom: 3px;
+      border-bottom: 1px solid #eeeeee;
+    }
+
+    .tool-btn {
+      width: 70px;
+      min-height: 46px;
+      border: 1px solid #d2d2d2;
       background: #fff;
-      border-radius: 10px;
-      padding: 9px 12px;
-      font-size: 14px;
-      font-weight: 600;
-      color: #222;
-      min-width: 58px;
+      color: #111;
+      border-radius: 12px;
+      font-size: 11px;
+      font-weight: 700;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 2px;
+      line-height: 1.1;
     }
 
-    button.active {
-      background: #222;
-      color: #fff;
-      border-color: #222;
+    .tool-btn .icon {
+      font-size: 18px;
+      line-height: 1;
     }
 
-    button.danger {
-      color: #b00020;
-      border-color: #e0b6c0;
-    }
-
-    button.save {
+    .tool-btn.active {
       background: #111;
-      color: white;
+      color: #fff;
       border-color: #111;
     }
 
-    .canvas-wrap {
+    .tool-btn.save {
+      background: #111;
+      color: #fff;
+      border-color: #111;
+    }
+
+    .tool-btn.danger {
+      color: #b00020;
+      border-color: #ddb4be;
+    }
+
+    .tool-btn.danger.active {
+      background: #b00020;
+      color: #fff;
+      border-color: #b00020;
+    }
+
+    .main {
       flex: 1;
       position: relative;
       overflow: hidden;
-      background: #fafafa;
+    }
+
+    .topbar {
+      position: absolute;
+      top: 8px;
+      left: 10px;
+      right: 10px;
+      height: 34px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      z-index: 5;
+      pointer-events: none;
+    }
+
+    .status {
+      background: rgba(255, 255, 255, 0.9);
+      border: 1px solid #ddd;
+      border-radius: 999px;
+      padding: 7px 12px;
+      font-size: 12px;
+      font-weight: 600;
+      color: #333;
+      pointer-events: none;
+      backdrop-filter: blur(8px);
     }
 
     canvas {
       display: block;
       width: 100%;
       height: 100%;
+      background: #fafafa;
       touch-action: none;
-      background: transparent;
-    }
-
-    .status {
-      position: absolute;
-      left: 10px;
-      bottom: 10px;
-      background: rgba(255,255,255,0.92);
-      border: 1px solid #ddd;
-      border-radius: 10px;
-      padding: 6px 10px;
-      font-size: 12px;
-      color: #333;
-      pointer-events: none;
     }
   </style>
 </head>
 
 <body>
   <div class="app">
-    <header>
-      <h1>回路図メーカー</h1>
-      <div class="hint">部品を選ぶ → 格子点を2回タップ。保存は透明背景PNGです。</div>
-    </header>
+    <aside class="toolbar">
+      <div class="tool-group">
+        <button class="tool-btn active" data-tool="wire">
+          <span class="icon">╱</span><span>導線</span>
+        </button>
+        <button class="tool-btn danger" data-tool="eraser">
+          <span class="icon">⌫</span><span>消す</span>
+        </button>
+        <button class="tool-btn" id="rotateBtn">
+          <span class="icon">↻</span><span>回転</span>
+        </button>
+      </div>
 
-    <div class="toolbar">
-      <button data-tool="wire" class="active">導線</button>
-      <button data-tool="resistor">抵抗</button>
-      <button data-tool="variableResistor">可変抵抗</button>
-      <button data-tool="battery">電源</button>
-      <button data-tool="ground">アース</button>
-      <button data-tool="capacitor">コンデンサー</button>
-      <button data-tool="metalPlate">金属板</button>
-      <button data-tool="switchContact">スイッチ</button>
-      <button data-tool="galvanometer">検流計</button>
-      <button data-tool="voltmeter">電圧計</button>
-      <button data-tool="ammeter">電流計</button>
-      <button data-tool="resistanceWire">抵抗線</button>
-      <button data-tool="sliderContact">可動接点</button>
-      <button data-tool="junction">接続点</button>
-      <button data-tool="eraser">消しゴム</button>
-      <button id="undoBtn">戻る</button>
-      <button id="clearBtn" class="danger">全消し</button>
-      <button id="saveBtn" class="save">PNG保存</button>
-    </div>
+      <div class="tool-group">
+        <button class="tool-btn" data-tool="junction">
+          <span class="icon">●</span><span>接続点</span>
+        </button>
+        <button class="tool-btn" data-tool="switchContact">
+          <span class="icon">● ●</span><span>スイッチ</span>
+        </button>
+        <button class="tool-btn" data-tool="ground">
+          <span class="icon">⏚</span><span>アース</span>
+        </button>
+      </div>
 
-    <div class="canvas-wrap">
+      <div class="tool-group">
+        <button class="tool-btn" data-tool="resistor">
+          <span class="icon">\/\/</span><span>抵抗</span>
+        </button>
+        <button class="tool-btn" data-tool="variableResistor">
+          <span class="icon">↗</span><span>可変抵抗</span>
+        </button>
+        <button class="tool-btn" data-tool="resistanceWire">
+          <span class="icon">〜</span><span>抵抗線</span>
+        </button>
+        <button class="tool-btn" data-tool="sliderContact">
+          <span class="icon">▼</span><span>可動接点</span>
+        </button>
+      </div>
+
+      <div class="tool-group">
+        <button class="tool-btn" data-tool="battery">
+          <span class="icon">▌▏</span><span>電源</span>
+        </button>
+        <button class="tool-btn" data-tool="capacitor">
+          <span class="icon">||</span><span>コンデンサ</span>
+        </button>
+        <button class="tool-btn" data-tool="metalPlate">
+          <span class="icon">▐</span><span>金属板</span>
+        </button>
+      </div>
+
+      <div class="tool-group">
+        <button class="tool-btn" data-tool="galvanometer">
+          <span class="icon">G</span><span>検流計</span>
+        </button>
+        <button class="tool-btn" data-tool="voltmeter">
+          <span class="icon">V</span><span>電圧計</span>
+        </button>
+        <button class="tool-btn" data-tool="ammeter">
+          <span class="icon">A</span><span>電流計</span>
+        </button>
+      </div>
+
+      <div class="tool-group">
+        <button class="tool-btn" id="undoBtn">
+          <span class="icon">↶</span><span>戻る</span>
+        </button>
+        <button class="tool-btn danger" id="clearBtn">
+          <span class="icon">×</span><span>全消し</span>
+        </button>
+        <button class="tool-btn save" id="saveBtn">
+          <span class="icon">⬇</span><span>PNG</span>
+        </button>
+      </div>
+    </aside>
+
+    <main class="main">
+      <div class="topbar">
+        <div class="status" id="status">導線：格子上をなぞって描く</div>
+      </div>
       <canvas id="canvas"></canvas>
-      <div class="status" id="status">導線モード</div>
-    </div>
+    </main>
   </div>
 
   <script>
@@ -153,29 +233,38 @@
 
     const GRID = 32;
     const LINE_WIDTH = 3;
-    const EXPORT_PADDING = 36;
+    const COMPONENT_LENGTH = 96;
+    const SAVE_SCALE = 3;
+    const EXPORT_PADDING = 70;
 
     let dpr = window.devicePixelRatio || 1;
-    let tool = "wire";
-    let firstPoint = null;
+
+    let currentTool = "wire";
+    let orientation = "horizontal";
+
     let items = [];
 
-    const toolNames = {
-      wire: "導線",
-      resistor: "抵抗",
-      variableResistor: "可変抵抗",
-      battery: "電源",
-      ground: "アース",
-      capacitor: "コンデンサー",
-      metalPlate: "金属板",
-      switchContact: "スイッチ接点",
-      galvanometer: "検流計",
-      voltmeter: "電圧計",
-      ammeter: "電流計",
-      resistanceWire: "抵抗線",
-      sliderContact: "可動接点",
-      junction: "接続点",
-      eraser: "消しゴム"
+    let isDrawingWire = false;
+    let currentWirePoints = [];
+
+    let draggingComponent = null;
+
+    const toolLabels = {
+      wire: "導線：格子上をなぞって描く",
+      eraser: "消しゴム：消したいものをタップ",
+      junction: "接続点：置きたい場所で離す",
+      switchContact: "スイッチ：接点だけを置く",
+      ground: "アース：単体で置く",
+      resistor: "抵抗：ドラッグして置く",
+      variableResistor: "可変抵抗：ドラッグして置く",
+      resistanceWire: "抵抗線：ドラッグして置く",
+      sliderContact: "可動接点：ドラッグして置く",
+      battery: "電源：ドラッグして置く",
+      capacitor: "コンデンサー：ドラッグして置く",
+      metalPlate: "金属板：ドラッグして置く",
+      galvanometer: "検流計：ドラッグして置く",
+      voltmeter: "電圧計：ドラッグして置く",
+      ammeter: "電流計：ドラッグして置く"
     };
 
     function resizeCanvas() {
@@ -188,22 +277,38 @@
 
     window.addEventListener("resize", resizeCanvas);
 
-    document.querySelectorAll("[data-tool]").forEach(button => {
-      button.addEventListener("click", () => {
-        tool = button.dataset.tool;
-        firstPoint = null;
+    document.querySelectorAll("[data-tool]").forEach(btn => {
+      btn.addEventListener("click", () => {
+        currentTool = btn.dataset.tool;
+        isDrawingWire = false;
+        currentWirePoints = [];
+        draggingComponent = null;
 
         document.querySelectorAll("[data-tool]").forEach(b => b.classList.remove("active"));
-        button.classList.add("active");
+        btn.classList.add("active");
 
-        statusEl.textContent = `${toolNames[tool]}モード`;
+        updateStatus();
         draw();
       });
     });
 
+    document.getElementById("rotateBtn").addEventListener("pointerdown", e => {
+      e.preventDefault();
+      orientation = orientation === "horizontal" ? "vertical" : "horizontal";
+
+      if (draggingComponent) {
+        draggingComponent.orientation = orientation;
+      }
+
+      updateStatus();
+      draw();
+    });
+
     document.getElementById("undoBtn").addEventListener("click", () => {
       items.pop();
-      firstPoint = null;
+      isDrawingWire = false;
+      currentWirePoints = [];
+      draggingComponent = null;
       draw();
     });
 
@@ -211,7 +316,9 @@
       if (items.length === 0) return;
       if (confirm("全部消しますか？")) {
         items = [];
-        firstPoint = null;
+        isDrawingWire = false;
+        currentWirePoints = [];
+        draggingComponent = null;
         draw();
       }
     });
@@ -223,41 +330,82 @@
 
       const p = getGridPoint(e);
 
-      if (tool === "eraser") {
-        eraseNearest(p);
+      if (currentTool === "wire") {
+        isDrawingWire = true;
+        currentWirePoints = [p];
         draw();
         return;
       }
 
-      if (tool === "junction" || tool === "ground" || tool === "sliderContact") {
-        items.push({ type: tool, x1: p.x, y1: p.y, x2: p.x, y2: p.y });
+      if (currentTool === "eraser") {
+        eraseAt(p);
         draw();
         return;
       }
 
-      if (!firstPoint) {
-        firstPoint = p;
-        draw();
-        return;
-      }
+      draggingComponent = {
+        kind: "component",
+        type: currentTool,
+        x: p.x,
+        y: p.y,
+        orientation
+      };
 
-      if (firstPoint.x === p.x && firstPoint.y === p.y) {
-        firstPoint = null;
-        draw();
-        return;
-      }
-
-      items.push({
-        type: tool,
-        x1: firstPoint.x,
-        y1: firstPoint.y,
-        x2: p.x,
-        y2: p.y
-      });
-
-      firstPoint = null;
       draw();
     });
+
+    canvas.addEventListener("pointermove", e => {
+      e.preventDefault();
+
+      const p = getGridPoint(e);
+
+      if (isDrawingWire) {
+        addWirePoint(p);
+        draw();
+        return;
+      }
+
+      if (draggingComponent) {
+        draggingComponent.x = p.x;
+        draggingComponent.y = p.y;
+        draggingComponent.orientation = orientation;
+        draw();
+      }
+    });
+
+    canvas.addEventListener("pointerup", e => {
+      e.preventDefault();
+
+      if (isDrawingWire) {
+        finalizeWire();
+        return;
+      }
+
+      if (draggingComponent) {
+        items.push({
+          kind: "component",
+          type: draggingComponent.type,
+          x: draggingComponent.x,
+          y: draggingComponent.y,
+          orientation: draggingComponent.orientation
+        });
+
+        draggingComponent = null;
+        draw();
+      }
+    });
+
+    canvas.addEventListener("pointercancel", () => {
+      isDrawingWire = false;
+      currentWirePoints = [];
+      draggingComponent = null;
+      draw();
+    });
+
+    function updateStatus() {
+      const dir = orientation === "horizontal" ? "横向き" : "縦向き";
+      statusEl.textContent = `${toolLabels[currentTool] || ""} / ${dir}`;
+    }
 
     function getGridPoint(e) {
       const rect = canvas.getBoundingClientRect();
@@ -270,23 +418,94 @@
       };
     }
 
+    function addWirePoint(p) {
+      if (currentWirePoints.length === 0) {
+        currentWirePoints.push(p);
+        return;
+      }
+
+      const last = currentWirePoints[currentWirePoints.length - 1];
+
+      if (last.x === p.x && last.y === p.y) return;
+
+      const dx = p.x - last.x;
+      const dy = p.y - last.y;
+
+      if (dx !== 0 && dy !== 0) {
+        const mid =
+          Math.abs(dx) >= Math.abs(dy)
+            ? { x: p.x, y: last.y }
+            : { x: last.x, y: p.y };
+
+        pushSimplifiedPoint(mid);
+        pushSimplifiedPoint(p);
+      } else {
+        pushSimplifiedPoint(p);
+      }
+    }
+
+    function pushSimplifiedPoint(p) {
+      const n = currentWirePoints.length;
+      const last = currentWirePoints[n - 1];
+
+      if (last && last.x === p.x && last.y === p.y) return;
+
+      if (n >= 2) {
+        const prev = currentWirePoints[n - 2];
+
+        const sameHorizontal = prev.y === last.y && last.y === p.y;
+        const sameVertical = prev.x === last.x && last.x === p.x;
+
+        if (sameHorizontal || sameVertical) {
+          currentWirePoints[n - 1] = p;
+          return;
+        }
+      }
+
+      currentWirePoints.push(p);
+    }
+
+    function finalizeWire() {
+      isDrawingWire = false;
+
+      if (currentWirePoints.length >= 2) {
+        const unique = [];
+
+        for (const p of currentWirePoints) {
+          const last = unique[unique.length - 1];
+          if (!last || last.x !== p.x || last.y !== p.y) {
+            unique.push(p);
+          }
+        }
+
+        if (unique.length >= 2) {
+          items.push({
+            kind: "wire",
+            points: unique
+          });
+        }
+      }
+
+      currentWirePoints = [];
+      draw();
+    }
+
     function draw() {
       const rect = canvas.getBoundingClientRect();
-      ctx.clearRect(0, 0, rect.width, rect.height);
 
+      ctx.clearRect(0, 0, rect.width, rect.height);
       drawGrid(ctx, rect.width, rect.height);
 
       for (const item of items) {
-        drawItem(ctx, item);
+        drawItem(ctx, item, 1);
       }
 
-      if (firstPoint) {
-        ctx.save();
-        ctx.fillStyle = "#111";
-        ctx.beginPath();
-        ctx.arc(firstPoint.x, firstPoint.y, 6, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.restore();
+      if (isDrawingWire && currentWirePoints.length > 0) {
+        drawWire(ctx, currentWirePoints, 0.45);
+      }
+
+      if (draggingComponent) {
+        drawComponent(ctx, draggingComponent, 0.35);
       }
     }
 
@@ -312,54 +531,16 @@
       c.restore();
     }
 
-    function drawItem(c, item) {
-      switch (item.type) {
-        case "wire":
-          drawWire(c, item);
-          break;
-        case "resistor":
-          drawResistor(c, item);
-          break;
-        case "variableResistor":
-          drawVariableResistor(c, item);
-          break;
-        case "battery":
-          drawBattery(c, item);
-          break;
-        case "ground":
-          drawGround(c, item);
-          break;
-        case "capacitor":
-          drawCapacitor(c, item);
-          break;
-        case "metalPlate":
-          drawMetalPlate(c, item);
-          break;
-        case "switchContact":
-          drawSwitchContact(c, item);
-          break;
-        case "galvanometer":
-          drawMeter(c, item, "G");
-          break;
-        case "voltmeter":
-          drawMeter(c, item, "V");
-          break;
-        case "ammeter":
-          drawMeter(c, item, "A");
-          break;
-        case "resistanceWire":
-          drawResistanceWire(c, item);
-          break;
-        case "sliderContact":
-          drawSliderContact(c, item);
-          break;
-        case "junction":
-          drawJunction(c, item.x1, item.y1);
-          break;
+    function drawItem(c, item, alpha = 1) {
+      if (item.kind === "wire") {
+        drawWire(c, item.points, alpha);
+      } else {
+        drawComponent(c, item, alpha);
       }
     }
 
-    function setupLine(c) {
+    function setupLine(c, alpha = 1) {
+      c.globalAlpha = alpha;
       c.strokeStyle = "#111";
       c.fillStyle = "#111";
       c.lineWidth = LINE_WIDTH;
@@ -370,305 +551,278 @@
       c.textBaseline = "middle";
     }
 
-    function getTransform(item) {
-      const dx = item.x2 - item.x1;
-      const dy = item.y2 - item.y1;
-      const length = Math.hypot(dx, dy);
-      const angle = Math.atan2(dy, dx);
-      return {
-        dx,
-        dy,
-        length,
-        angle,
-        cx: (item.x1 + item.x2) / 2,
-        cy: (item.y1 + item.y2) / 2
-      };
-    }
+    function drawWire(c, points, alpha = 1) {
+      if (points.length < 2) return;
 
-    function withLocal(c, item, drawFn) {
-      const t = getTransform(item);
       c.save();
-      c.translate(t.cx, t.cy);
-      c.rotate(t.angle);
-      drawFn(c, t.length);
-      c.restore();
-    }
+      setupLine(c, alpha);
 
-    function drawWire(c, item) {
-      c.save();
-      setupLine(c);
       c.beginPath();
-      c.moveTo(item.x1, item.y1);
-      c.lineTo(item.x2, item.y2);
+      c.moveTo(points[0].x, points[0].y);
+
+      for (let i = 1; i < points.length; i++) {
+        c.lineTo(points[i].x, points[i].y);
+      }
+
       c.stroke();
       c.restore();
     }
 
-    function drawJunction(c, x, y) {
+    function drawComponent(c, item, alpha = 1) {
       c.save();
-      setupLine(c);
+      setupLine(c, alpha);
+
+      const angle = item.orientation === "vertical" ? Math.PI / 2 : 0;
+      c.translate(item.x, item.y);
+      c.rotate(angle);
+
+      switch (item.type) {
+        case "junction":
+          drawJunctionLocal(c);
+          break;
+        case "switchContact":
+          drawSwitchContactLocal(c);
+          break;
+        case "ground":
+          drawGroundLocal(c);
+          break;
+        case "resistor":
+          drawResistorLocal(c);
+          break;
+        case "variableResistor":
+          drawVariableResistorLocal(c);
+          break;
+        case "resistanceWire":
+          drawResistanceWireLocal(c);
+          break;
+        case "sliderContact":
+          drawSliderContactLocal(c);
+          break;
+        case "battery":
+          drawBatteryLocal(c);
+          break;
+        case "capacitor":
+          drawCapacitorLocal(c);
+          break;
+        case "metalPlate":
+          drawMetalPlateLocal(c);
+          break;
+        case "galvanometer":
+          drawMeterLocal(c, "G");
+          break;
+        case "voltmeter":
+          drawMeterLocal(c, "V");
+          break;
+        case "ammeter":
+          drawMeterLocal(c, "A");
+          break;
+      }
+
+      c.restore();
+    }
+
+    function drawJunctionLocal(c) {
       c.beginPath();
-      c.arc(x, y, 5.5, 0, Math.PI * 2);
+      c.arc(0, 0, 6, 0, Math.PI * 2);
       c.fill();
-      c.restore();
     }
 
-    function drawResistor(c, item) {
-      withLocal(c, item, (c, length) => {
-        setupLine(c);
-
-        const body = Math.min(72, Math.max(44, length * 0.45));
-        const left = -length / 2;
-        const right = length / 2;
-        const bodyLeft = -body / 2;
-        const bodyRight = body / 2;
-        const amp = 10;
-        const steps = 6;
-        const step = body / steps;
-
-        c.beginPath();
-        c.moveTo(left, 0);
-        c.lineTo(bodyLeft, 0);
-
-        for (let i = 0; i <= steps; i++) {
-          const x = bodyLeft + i * step;
-          const y = i % 2 === 0 ? -amp : amp;
-          c.lineTo(x, y);
-        }
-
-        c.lineTo(bodyRight, 0);
-        c.lineTo(right, 0);
-        c.stroke();
-      });
-    }
-
-    function drawVariableResistor(c, item) {
-      drawResistor(c, item);
-
-      withLocal(c, item, (c, length) => {
-        setupLine(c);
-
-        const arrowLen = 58;
-        const x1 = -arrowLen / 2;
-        const y1 = 28;
-        const x2 = arrowLen / 2;
-        const y2 = -28;
-
-        c.beginPath();
-        c.moveTo(x1, y1);
-        c.lineTo(x2, y2);
-        c.stroke();
-
-        drawArrowHead(c, x2, y2, Math.atan2(y2 - y1, x2 - x1));
-      });
-    }
-
-    function drawBattery(c, item) {
-      withLocal(c, item, (c, length) => {
-        setupLine(c);
-
-        const left = -length / 2;
-        const right = length / 2;
-        const gap = 10;
-        const shortH = 28;
-        const longH = 48;
-
-        c.beginPath();
-        c.moveTo(left, 0);
-        c.lineTo(-gap, 0);
-        c.moveTo(gap, 0);
-        c.lineTo(right, 0);
-        c.stroke();
-
-        c.beginPath();
-        c.moveTo(-gap, -shortH / 2);
-        c.lineTo(-gap, shortH / 2);
-        c.moveTo(gap, -longH / 2);
-        c.lineTo(gap, longH / 2);
-        c.stroke();
-      });
-    }
-
-    function drawCapacitor(c, item) {
-      withLocal(c, item, (c, length) => {
-        setupLine(c);
-
-        const left = -length / 2;
-        const right = length / 2;
-        const gap = 10;
-        const h = 48;
-
-        c.beginPath();
-        c.moveTo(left, 0);
-        c.lineTo(-gap, 0);
-        c.moveTo(gap, 0);
-        c.lineTo(right, 0);
-        c.stroke();
-
-        c.beginPath();
-        c.moveTo(-gap, -h / 2);
-        c.lineTo(-gap, h / 2);
-        c.moveTo(gap, -h / 2);
-        c.lineTo(gap, h / 2);
-        c.stroke();
-      });
-    }
-
-    function drawMetalPlate(c, item) {
-      withLocal(c, item, (c, length) => {
-        setupLine(c);
-
-        const left = -length / 2;
-        const right = length / 2;
-        const gap = 18;
-        const plateH = 54;
-        const metalH = 42;
-
-        c.beginPath();
-        c.moveTo(left, 0);
-        c.lineTo(-gap, 0);
-        c.moveTo(gap, 0);
-        c.lineTo(right, 0);
-        c.stroke();
-
-        c.beginPath();
-        c.moveTo(-gap, -plateH / 2);
-        c.lineTo(-gap, plateH / 2);
-        c.moveTo(gap, -plateH / 2);
-        c.lineTo(gap, plateH / 2);
-        c.stroke();
-
-        c.lineWidth = 5;
-        c.beginPath();
-        c.moveTo(0, -metalH / 2);
-        c.lineTo(0, metalH / 2);
-        c.stroke();
-      });
-    }
-
-    function drawSwitchContact(c, item) {
-      withLocal(c, item, (c, length) => {
-        setupLine(c);
-
-        const left = -length / 2;
-        const right = length / 2;
-        const gap = 30;
-
-        c.beginPath();
-        c.moveTo(left, 0);
-        c.lineTo(-gap / 2, 0);
-        c.moveTo(gap / 2, 0);
-        c.lineTo(right, 0);
-        c.stroke();
-
-        c.beginPath();
-        c.arc(-gap / 2, 0, 5.5, 0, Math.PI * 2);
-        c.arc(gap / 2, 0, 5.5, 0, Math.PI * 2);
-        c.fill();
-      });
-    }
-
-    function drawMeter(c, item, label) {
-      withLocal(c, item, (c, length) => {
-        setupLine(c);
-
-        const left = -length / 2;
-        const right = length / 2;
-        const r = 24;
-
-        c.beginPath();
-        c.moveTo(left, 0);
-        c.lineTo(-r, 0);
-        c.moveTo(r, 0);
-        c.lineTo(right, 0);
-        c.stroke();
-
-        c.beginPath();
-        c.arc(0, 0, r, 0, Math.PI * 2);
-        c.stroke();
-
-        c.fillText(label, 0, 1);
-      });
-    }
-
-    function drawGround(c, item) {
-      c.save();
-      setupLine(c);
-
-      const x = item.x1;
-      const y = item.y1;
+    function drawSwitchContactLocal(c) {
+      const len = COMPONENT_LENGTH;
+      const left = -len / 2;
+      const right = len / 2;
+      const gap = 34;
 
       c.beginPath();
-      c.moveTo(x, y - 30);
-      c.lineTo(x, y);
+      c.moveTo(left, 0);
+      c.lineTo(-gap / 2, 0);
+      c.moveTo(gap / 2, 0);
+      c.lineTo(right, 0);
       c.stroke();
 
       c.beginPath();
-      c.moveTo(x - 22, y);
-      c.lineTo(x + 22, y);
-      c.moveTo(x - 15, y + 10);
-      c.lineTo(x + 15, y + 10);
-      c.moveTo(x - 8, y + 20);
-      c.lineTo(x + 8, y + 20);
+      c.arc(-gap / 2, 0, 6, 0, Math.PI * 2);
+      c.arc(gap / 2, 0, 6, 0, Math.PI * 2);
+      c.fill();
+    }
+
+    function drawGroundLocal(c) {
+      c.beginPath();
+      c.moveTo(0, -32);
+      c.lineTo(0, 0);
       c.stroke();
 
+      c.beginPath();
+      c.moveTo(-24, 0);
+      c.lineTo(24, 0);
+      c.moveTo(-16, 11);
+      c.lineTo(16, 11);
+      c.moveTo(-8, 22);
+      c.lineTo(8, 22);
+      c.stroke();
+    }
+
+    function drawResistorLocal(c) {
+      const len = COMPONENT_LENGTH;
+      const left = -len / 2;
+      const right = len / 2;
+      const body = 62;
+      const bodyLeft = -body / 2;
+      const bodyRight = body / 2;
+      const amp = 10;
+      const steps = 6;
+      const step = body / steps;
+
+      c.beginPath();
+      c.moveTo(left, 0);
+      c.lineTo(bodyLeft, 0);
+
+      for (let i = 0; i <= steps; i++) {
+        const x = bodyLeft + i * step;
+        const y = i % 2 === 0 ? -amp : amp;
+        c.lineTo(x, y);
+      }
+
+      c.lineTo(bodyRight, 0);
+      c.lineTo(right, 0);
+      c.stroke();
+    }
+
+    function drawVariableResistorLocal(c) {
+      drawResistorLocal(c);
+
+      const x1 = -30;
+      const y1 = 28;
+      const x2 = 32;
+      const y2 = -28;
+
+      c.beginPath();
+      c.moveTo(x1, y1);
+      c.lineTo(x2, y2);
+      c.stroke();
+
+      drawArrowHead(c, x2, y2, Math.atan2(y2 - y1, x2 - x1));
+    }
+
+    function drawResistanceWireLocal(c) {
+      const len = 116;
+      const left = -len / 2;
+      const right = len / 2;
+
+      c.beginPath();
+      c.moveTo(left, 0);
+      c.lineTo(right, 0);
+      c.stroke();
+
+      c.save();
+      c.lineWidth = 1.8;
+      c.beginPath();
+
+      for (let x = left; x <= right; x += 2) {
+        const y = Math.sin((x - left) / 10 * Math.PI * 2) * 6;
+        if (x === left) c.moveTo(x, y);
+        else c.lineTo(x, y);
+      }
+
+      c.stroke();
       c.restore();
     }
 
-    function drawResistanceWire(c, item) {
-      withLocal(c, item, (c, length) => {
-        setupLine(c);
-
-        const left = -length / 2;
-        const right = length / 2;
-
-        c.beginPath();
-        c.moveTo(left, 0);
-        c.lineTo(right, 0);
-        c.stroke();
-
-        c.lineWidth = 1.8;
-        c.beginPath();
-
-        const waveAmp = 7;
-        const waveLen = 12;
-        for (let x = left; x <= right; x += 2) {
-          const y = Math.sin((x - left) / waveLen * Math.PI * 2) * waveAmp;
-          if (x === left) c.moveTo(x, y);
-          else c.lineTo(x, y);
-        }
-
-        c.stroke();
-      });
-    }
-
-    function drawSliderContact(c, item) {
-      c.save();
-      setupLine(c);
-
-      const x = item.x1;
-      const y = item.y1;
-
+    function drawSliderContactLocal(c) {
       c.beginPath();
-      c.arc(x, y, 6, 0, Math.PI * 2);
+      c.arc(0, 0, 6, 0, Math.PI * 2);
       c.fill();
 
       c.beginPath();
-      c.moveTo(x, y - 36);
-      c.lineTo(x, y - 6);
+      c.moveTo(0, -38);
+      c.lineTo(0, -7);
       c.stroke();
 
       c.beginPath();
-      c.moveTo(x - 10, y - 24);
-      c.lineTo(x, y - 6);
-      c.lineTo(x + 10, y - 24);
+      c.moveTo(-11, -24);
+      c.lineTo(0, -7);
+      c.lineTo(11, -24);
+      c.stroke();
+    }
+
+    function drawBatteryLocal(c) {
+      const len = COMPONENT_LENGTH;
+      const left = -len / 2;
+      const right = len / 2;
+      const gap = 12;
+      const shortH = 30;
+      const longH = 52;
+
+      c.beginPath();
+      c.moveTo(left, 0);
+      c.lineTo(-gap, 0);
+      c.moveTo(gap, 0);
+      c.lineTo(right, 0);
       c.stroke();
 
+      c.beginPath();
+      c.moveTo(-gap, -shortH / 2);
+      c.lineTo(-gap, shortH / 2);
+      c.moveTo(gap, -longH / 2);
+      c.lineTo(gap, longH / 2);
+      c.stroke();
+    }
+
+    function drawCapacitorLocal(c) {
+      const len = COMPONENT_LENGTH;
+      const left = -len / 2;
+      const right = len / 2;
+      const gap = 12;
+      const h = 54;
+
+      c.beginPath();
+      c.moveTo(left, 0);
+      c.lineTo(-gap, 0);
+      c.moveTo(gap, 0);
+      c.lineTo(right, 0);
+      c.stroke();
+
+      c.beginPath();
+      c.moveTo(-gap, -h / 2);
+      c.lineTo(-gap, h / 2);
+      c.moveTo(gap, -h / 2);
+      c.lineTo(gap, h / 2);
+      c.stroke();
+    }
+
+    function drawMetalPlateLocal(c) {
+      c.save();
+      c.lineWidth = 7;
+      c.beginPath();
+      c.moveTo(0, -32);
+      c.lineTo(0, 32);
+      c.stroke();
       c.restore();
+    }
+
+    function drawMeterLocal(c, label) {
+      const len = COMPONENT_LENGTH;
+      const left = -len / 2;
+      const right = len / 2;
+      const r = 25;
+
+      c.beginPath();
+      c.moveTo(left, 0);
+      c.lineTo(-r, 0);
+      c.moveTo(r, 0);
+      c.lineTo(right, 0);
+      c.stroke();
+
+      c.beginPath();
+      c.arc(0, 0, r, 0, Math.PI * 2);
+      c.stroke();
+
+      c.fillText(label, 0, 1);
     }
 
     function drawArrowHead(c, x, y, angle) {
       const size = 10;
+
       c.beginPath();
       c.moveTo(x, y);
       c.lineTo(
@@ -683,15 +837,14 @@
       c.stroke();
     }
 
-    function eraseNearest(p) {
+    function eraseAt(p) {
       if (items.length === 0) return;
 
       let bestIndex = -1;
       let bestDistance = Infinity;
 
       for (let i = 0; i < items.length; i++) {
-        const item = items[i];
-        const d = distancePointToItem(p, item);
+        const d = distanceToItem(p, items[i]);
 
         if (d < bestDistance) {
           bestDistance = d;
@@ -704,38 +857,41 @@
       }
     }
 
-    function distancePointToItem(p, item) {
-      if (item.x1 === item.x2 && item.y1 === item.y2) {
-        return Math.hypot(p.x - item.x1, p.y - item.y1);
+    function distanceToItem(p, item) {
+      if (item.kind === "component") {
+        return Math.hypot(p.x - item.x, p.y - item.y);
       }
 
-      const x1 = item.x1;
-      const y1 = item.y1;
-      const x2 = item.x2;
-      const y2 = item.y2;
+      let best = Infinity;
 
-      const dx = x2 - x1;
-      const dy = y2 - y1;
+      for (let i = 0; i < item.points.length - 1; i++) {
+        const a = item.points[i];
+        const b = item.points[i + 1];
+        const d = distancePointToSegment(p, a, b);
+        best = Math.min(best, d);
+      }
+
+      return best;
+    }
+
+    function distancePointToSegment(p, a, b) {
+      const dx = b.x - a.x;
+      const dy = b.y - a.y;
       const len2 = dx * dx + dy * dy;
 
-      let t = ((p.x - x1) * dx + (p.y - y1) * dy) / len2;
+      if (len2 === 0) return Math.hypot(p.x - a.x, p.y - a.y);
+
+      let t = ((p.x - a.x) * dx + (p.y - a.y) * dy) / len2;
       t = Math.max(0, Math.min(1, t));
 
-      const px = x1 + t * dx;
-      const py = y1 + t * dy;
+      const x = a.x + t * dx;
+      const y = a.y + t * dy;
 
-      return Math.hypot(p.x - px, p.y - py);
+      return Math.hypot(p.x - x, p.y - y);
     }
 
     function getBounds() {
-      if (items.length === 0) {
-        return {
-          minX: 0,
-          minY: 0,
-          maxX: canvas.getBoundingClientRect().width,
-          maxY: canvas.getBoundingClientRect().height
-        };
-      }
+      if (items.length === 0) return null;
 
       let minX = Infinity;
       let minY = Infinity;
@@ -743,10 +899,19 @@
       let maxY = -Infinity;
 
       for (const item of items) {
-        minX = Math.min(minX, item.x1, item.x2);
-        minY = Math.min(minY, item.y1, item.y2);
-        maxX = Math.max(maxX, item.x1, item.x2);
-        maxY = Math.max(maxY, item.y1, item.y2);
+        if (item.kind === "wire") {
+          for (const p of item.points) {
+            minX = Math.min(minX, p.x);
+            minY = Math.min(minY, p.y);
+            maxX = Math.max(maxX, p.x);
+            maxY = Math.max(maxY, p.y);
+          }
+        } else {
+          minX = Math.min(minX, item.x - EXPORT_PADDING);
+          minY = Math.min(minY, item.y - EXPORT_PADDING);
+          maxX = Math.max(maxX, item.x + EXPORT_PADDING);
+          maxY = Math.max(maxY, item.y + EXPORT_PADDING);
+        }
       }
 
       return {
@@ -759,36 +924,51 @@
 
     function saveTransparentPNG() {
       const bounds = getBounds();
+
+      if (!bounds) {
+        alert("まだ何も描かれていません。");
+        return;
+      }
+
       const w = Math.max(160, bounds.maxX - bounds.minX);
       const h = Math.max(160, bounds.maxY - bounds.minY);
 
       const exportCanvas = document.createElement("canvas");
-      const scale = 3;
-
-      exportCanvas.width = Math.ceil(w * scale);
-      exportCanvas.height = Math.ceil(h * scale);
+      exportCanvas.width = Math.ceil(w * SAVE_SCALE);
+      exportCanvas.height = Math.ceil(h * SAVE_SCALE);
 
       const ex = exportCanvas.getContext("2d");
-      ex.setTransform(scale, 0, 0, scale, -bounds.minX * scale, -bounds.minY * scale);
 
-      // 透明背景なので背景は描かない
+      ex.setTransform(
+        SAVE_SCALE,
+        0,
+        0,
+        SAVE_SCALE,
+        -bounds.minX * SAVE_SCALE,
+        -bounds.minY * SAVE_SCALE
+      );
+
       for (const item of items) {
-        drawItem(ex, item);
+        drawItem(ex, item, 1);
       }
 
       exportCanvas.toBlob(blob => {
         const url = URL.createObjectURL(blob);
         const a = document.createElement("a");
+
         a.href = url;
         a.download = "circuit-transparent.png";
         document.body.appendChild(a);
         a.click();
         a.remove();
 
-        setTimeout(() => URL.revokeObjectURL(url), 1000);
+        setTimeout(() => {
+          URL.revokeObjectURL(url);
+        }, 1000);
       }, "image/png");
     }
 
+    updateStatus();
     resizeCanvas();
   </script>
 </body>
